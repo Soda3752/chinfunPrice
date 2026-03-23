@@ -178,9 +178,39 @@
     .edit-mode-btn:hover { background: #f1f8f1; }
     .edit-mode-btn.active { background: #4caf50; color: #fff; }
 
-    .highlight-toolbar {
+    .width-control {
       position: fixed;
       top: 58px;
+      right: 16px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 8px 14px;
+      z-index: 1000;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #555;
+      white-space: nowrap;
+    }
+    body.edit-mode .width-control { display: flex; }
+    #widthSlider {
+      width: 110px;
+      cursor: pointer;
+      accent-color: #4caf50;
+    }
+    #widthValue {
+      min-width: 26px;
+      text-align: right;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .highlight-toolbar {
+      position: fixed;
+      top: 114px;
       right: 16px;
       background: #fff;
       border: 1px solid #e0e0e0;
@@ -400,6 +430,12 @@
 
   <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()">✏ 編輯</button>
 
+  <div class="width-control" id="widthControl">
+    <span>頁面寬度</span>
+    <input type="range" id="widthSlider" min="360" max="900" step="10" value="480">
+    <span id="widthValue">480</span>px
+  </div>
+
   <div class="highlight-toolbar" id="highlightToolbar">
     <div class="toolbar-hl-label">螢光筆效果</div>
     <div class="hl-colors">
@@ -570,7 +606,8 @@
           label: row.querySelector('.price-label-input')?.value || '',
           price: row.querySelector('.price-input')?.value || '0',
           unit: row.querySelector('.price-unit-input')?.value || ''
-        }))
+        })),
+        cardWidth: document.querySelector('.card').style.width || '480px'
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
@@ -595,11 +632,28 @@
             table.insertBefore(createPriceRow(rd.label, rd.price, rd.unit), addBtn);
           });
         }
+        if (data.cardWidth) {
+          const w = parseInt(data.cardWidth);
+          document.querySelector('.card').style.width = w + 'px';
+          document.getElementById('widthSlider').value = w;
+          document.getElementById('widthValue').textContent = w;
+        }
       } catch(e) { console.warn('載入快取失敗', e); }
     }
 
     // 品項輸入即時儲存
     document.querySelector('.price-table').addEventListener('input', saveToStorage);
+
+    // 頁面寬度調整
+    const widthSlider = document.getElementById('widthSlider');
+    const widthValueEl = document.getElementById('widthValue');
+    const card = document.querySelector('.card');
+
+    widthSlider.addEventListener('input', function() {
+      card.style.width = this.value + 'px';
+      widthValueEl.textContent = this.value;
+      saveToStorage();
+    });
 
     // 頁面載入時還原快取
     window.addEventListener('load', loadFromStorage);
