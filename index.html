@@ -97,6 +97,27 @@
       margin-left: 8px;
     }
 
+    .price-unit-input {
+      width: 48px;
+      padding: 0;
+      border: none;
+      background: none;
+      font-size: 15px;
+      color: #333;
+      font-family: inherit;
+      outline: none;
+      pointer-events: none;
+      margin-left: 1px;
+    }
+    body.edit-mode .price-unit-input {
+      padding: 4px 6px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      background: #fff;
+      pointer-events: auto;
+    }
+    body.edit-mode .price-unit-input:focus { border-color: #4caf50; }
+
     .divider {
       border: none;
       border-top: 1px solid #e0e0e0;
@@ -346,13 +367,15 @@
       <div class="price-row">
         <input class="price-label-input" type="text" value="吐司類調漲" maxlength="8">
         <input class="price-input" type="number" value="0" min="0">
-        <span class="price-unit">元</span>
+        <span class="price-unit">元/</span>
+        <input class="price-unit-input" type="text" value="條" maxlength="4" placeholder="單位">
         <button class="delete-row-btn" title="刪除此品項" onclick="this.closest('.price-row').remove()">✕</button>
       </div>
       <div class="price-row">
         <input class="price-label-input" type="text" value="漢堡類調漲" maxlength="8">
         <input class="price-input" type="number" value="0" min="0">
-        <span class="price-unit">元</span>
+        <span class="price-unit">元/</span>
+        <input class="price-unit-input" type="text" value="個" maxlength="4" placeholder="單位">
         <button class="delete-row-btn" title="刪除此品項" onclick="this.closest('.price-row').remove()">✕</button>
       </div>
       <button class="add-row-btn" onclick="addPriceRow()">＋ 新增品項</button>
@@ -440,6 +463,8 @@
           delete el._pencilBtn;
         });
       });
+
+      saveToStorage();
     }
 
     function startEditing(section, pencilBtn) {
@@ -482,10 +507,7 @@
       document.execCommand('hiliteColor', false, 'transparent');
     }
 
-    function addPriceRow() {
-      const table = document.querySelector('.price-table');
-      const addBtn = table.querySelector('.add-row-btn');
-
+    function createPriceRow(label, price, unit) {
       const row = document.createElement('div');
       row.className = 'price-row';
 
@@ -494,31 +516,93 @@
       labelInput.className = 'price-label-input';
       labelInput.placeholder = '品項名稱';
       labelInput.maxLength = 8;
+      labelInput.value = label || '';
 
       const priceInput = document.createElement('input');
       priceInput.type = 'number';
       priceInput.className = 'price-input';
-      priceInput.value = '0';
+      priceInput.value = price || '0';
       priceInput.min = '0';
 
-      const unit = document.createElement('span');
-      unit.className = 'price-unit';
-      unit.textContent = '元';
+      const unitSpan = document.createElement('span');
+      unitSpan.className = 'price-unit';
+      unitSpan.textContent = '元/';
+
+      const unitInput = document.createElement('input');
+      unitInput.type = 'text';
+      unitInput.className = 'price-unit-input';
+      unitInput.placeholder = '單位';
+      unitInput.maxLength = 4;
+      unitInput.value = unit || '';
 
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'delete-row-btn';
       deleteBtn.innerHTML = '✕';
       deleteBtn.title = '刪除此品項';
-      deleteBtn.onclick = () => row.remove();
+      deleteBtn.onclick = () => { row.remove(); saveToStorage(); };
 
       row.appendChild(labelInput);
       row.appendChild(priceInput);
-      row.appendChild(unit);
+      row.appendChild(unitSpan);
+      row.appendChild(unitInput);
       row.appendChild(deleteBtn);
-
-      table.insertBefore(row, addBtn);
-      labelInput.focus();
+      return row;
     }
+
+    function addPriceRow() {
+      const table = document.querySelector('.price-table');
+      const addBtn = table.querySelector('.add-row-btn');
+      const row = createPriceRow('', '0', '');
+      table.insertBefore(row, addBtn);
+      row.querySelector('.price-label-input').focus();
+    }
+
+    // ===== localStorage =====
+    const STORAGE_KEY = 'priceNotice_v1';
+
+    function saveToStorage() {
+      const data = {
+        title: document.querySelector('.card-title').innerHTML,
+        bodyTexts: Array.from(document.querySelectorAll('p.body-text')).map(el => el.innerHTML),
+        footerMessage: document.querySelector('p.footer-message').innerHTML,
+        companyInfo: document.querySelector('.company-info').innerHTML,
+        priceRows: Array.from(document.querySelectorAll('.price-row')).map(row => ({
+          label: row.querySelector('.price-label-input')?.value || '',
+          price: row.querySelector('.price-input')?.value || '0',
+          unit: row.querySelector('.price-unit-input')?.value || ''
+        }))
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function loadFromStorage() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw);
+        if (data.title) document.querySelector('.card-title').innerHTML = data.title;
+        if (data.bodyTexts) {
+          const els = document.querySelectorAll('p.body-text');
+          data.bodyTexts.forEach((html, i) => { if (els[i]) els[i].innerHTML = html; });
+        }
+        if (data.footerMessage) document.querySelector('p.footer-message').innerHTML = data.footerMessage;
+        if (data.companyInfo) document.querySelector('.company-info').innerHTML = data.companyInfo;
+        if (data.priceRows) {
+          const table = document.querySelector('.price-table');
+          const addBtn = table.querySelector('.add-row-btn');
+          table.querySelectorAll('.price-row').forEach(r => r.remove());
+          data.priceRows.forEach(rd => {
+            table.insertBefore(createPriceRow(rd.label, rd.price, rd.unit), addBtn);
+          });
+        }
+      } catch(e) { console.warn('載入快取失敗', e); }
+    }
+
+    // 品項輸入即時儲存
+    document.querySelector('.price-table').addEventListener('input', saveToStorage);
+
+    // 頁面載入時還原快取
+    window.addEventListener('load', loadFromStorage);
 
     document.addEventListener('click', function(e) {
       if (!activeSection) return;
