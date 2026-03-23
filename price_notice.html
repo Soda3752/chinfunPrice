@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>價格調整通知</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 40px 16px;
+    }
+
+    .card {
+      background: #fff;
+      width: 480px;
+      padding: 36px 40px 40px;
+      border-radius: 4px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    .card-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: #222;
+      padding-bottom: 14px;
+      border-bottom: 2.5px solid #4caf50;
+      margin-bottom: 28px;
+    }
+
+    .body-text {
+      font-size: 15px;
+      color: #333;
+      line-height: 1.9;
+      margin-bottom: 16px;
+    }
+
+    .highlight-yellow {
+      background-color: #ffe082;
+      padding: 0 2px;
+    }
+
+    .price-table {
+      border-left: 4px solid #4caf50;
+      padding: 18px 24px;
+      margin: 20px 0;
+      background: #fafafa;
+    }
+
+    .price-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .price-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .price-label {
+      font-size: 15px;
+      font-weight: bold;
+      color: #222;
+      width: 100px;
+      flex-shrink: 0;
+    }
+
+    .price-input {
+      width: 100px;
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 15px;
+      text-align: center;
+      color: #333;
+      outline: none;
+    }
+
+    .price-input:focus {
+      border-color: #4caf50;
+    }
+
+    .price-unit {
+      font-size: 15px;
+      color: #333;
+      margin-left: 8px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e0e0e0;
+      margin: 24px 0;
+    }
+
+    .footer-message {
+      text-align: center;
+      font-size: 14px;
+      color: #444;
+      margin-bottom: 20px;
+      line-height: 1.8;
+    }
+
+    .company-info {
+      text-align: right;
+      font-size: 14px;
+      color: #555;
+      line-height: 2;
+      margin-bottom: 28px;
+    }
+
+    .print-btn {
+      display: block;
+      margin: 0 auto;
+      background-color: #4caf50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 12px 48px;
+      font-size: 16px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .print-btn:hover {
+      background-color: #388e3c;
+    }
+
+    /* ===== 編輯模式 ===== */
+    .edit-mode-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: #fff;
+      border: 2px solid #4caf50;
+      color: #4caf50;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      transition: all 0.2s;
+    }
+    .edit-mode-btn:hover { background: #f1f8f1; }
+    .edit-mode-btn.active { background: #4caf50; color: #fff; }
+
+    .highlight-toolbar {
+      position: fixed;
+      top: 58px;
+      right: 16px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      z-index: 1000;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      width: 180px;
+    }
+    .highlight-toolbar.visible { display: flex; }
+    .toolbar-hl-label { font-size: 12px; color: #777; }
+    .hl-colors { display: flex; gap: 6px; align-items: center; }
+    .hl-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid #e0e0e0;
+      cursor: pointer;
+      padding: 0;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+    .hl-btn:hover { border-color: #555; transform: scale(1.15); }
+    .hl-yellow { background: #ffe082; }
+    .hl-green  { background: #a5d6a7; }
+    .hl-blue   { background: #90caf9; }
+    .hl-pink   { background: #f48fb1; }
+    .hl-remove {
+      width: 22px;
+      height: 22px;
+      background: #fff;
+      border: 2px solid #ddd;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 11px;
+      color: #aaa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: all 0.15s;
+    }
+    .hl-remove:hover { border-color: #e53935; color: #e53935; }
+    .toolbar-done-btn {
+      background: #4caf50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 0;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toolbar-done-btn:hover { background: #388e3c; }
+
+    body.edit-mode .card { padding-right: 76px; }
+
+    .pencil-btn {
+      position: absolute;
+      right: -50px;
+      top: 2px;
+      width: 26px;
+      height: 26px;
+      background: #fff;
+      border: 1.5px solid #ddd;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 12px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      transition: all 0.15s;
+      z-index: 5;
+      padding: 0;
+      line-height: 1;
+    }
+    .pencil-btn:hover { border-color: #4caf50; color: #4caf50; background: #f1f8f1; }
+    body.edit-mode .pencil-btn { display: flex; }
+
+    .editing-active {
+      outline: 2px dashed #4caf50 !important;
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* ===== 新增品項 ===== */
+    .add-row-btn {
+      display: none;
+    }
+    body.edit-mode .add-row-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      background: none;
+      border: 1.5px dashed #4caf50;
+      color: #4caf50;
+      border-radius: 4px;
+      padding: 7px 0;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background 0.2s;
+    }
+    .add-row-btn:hover { background: #f1f8f1; }
+
+    .price-label-input {
+      width: 100px;
+      padding: 0;
+      border: none;
+      background: none;
+      font-size: 15px;
+      font-weight: bold;
+      color: #222;
+      font-family: inherit;
+      flex-shrink: 0;
+      outline: none;
+      pointer-events: none;
+    }
+    body.edit-mode .price-label-input {
+      padding: 4px 6px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      background: #fff;
+      pointer-events: auto;
+    }
+    body.edit-mode .price-label-input:focus { border-color: #4caf50; }
+
+    .delete-row-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 16px;
+      margin-left: 6px;
+      padding: 0 4px;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .delete-row-btn:hover { color: #e53935; }
+    body.edit-mode .delete-row-btn { display: inline; }
+
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+      .card {
+        box-shadow: none;
+        width: 100%;
+      }
+      .print-btn,
+      .edit-mode-btn,
+      .highlight-toolbar,
+      .pencil-btn,
+      .add-row-btn,
+      .delete-row-btn {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-title">價格調整通知</div>
+
+    <p class="body-text">親愛的顧客，您好：</p>
+    <p class="body-text">感謝您一直以來對本公司的信任與支持。</p>
+    <p class="body-text">
+      由於近期麵粉、奶油等主要原物料成本大幅上漲，加上運輸及人力成本增加，為維持產品品質與服務水準，本公司秉持回饋顧客精神，已
+      <span class="highlight-yellow">一年未調整價格</span>。為持續提供優質產品與服務，將自
+      <span class="highlight-yellow">2026年3月1日</span>
+      起調整部分商品價格：
+    </p>
+
+    <div class="price-table">
+      <div class="price-row">
+        <input class="price-label-input" type="text" value="吐司類調漲" maxlength="8">
+        <input class="price-input" type="number" value="0" min="0">
+        <span class="price-unit">元</span>
+        <button class="delete-row-btn" title="刪除此品項" onclick="this.closest('.price-row').remove()">✕</button>
+      </div>
+      <div class="price-row">
+        <input class="price-label-input" type="text" value="漢堡類調漲" maxlength="8">
+        <input class="price-input" type="number" value="0" min="0">
+        <span class="price-unit">元</span>
+        <button class="delete-row-btn" title="刪除此品項" onclick="this.closest('.price-row').remove()">✕</button>
+      </div>
+      <button class="add-row-btn" onclick="addPriceRow()">＋ 新增品項</button>
+    </div>
+
+    <p class="body-text">
+      我們深知此次調整可能造成不便，但為了持續提供優質的產品與服務，實屬必要之舉。未來我們將持續努力控制成本，提供更好的產品品質。
+    </p>
+
+    <hr class="divider">
+
+    <p class="footer-message">再次感謝您的理解與支持，敬祝身體健康，事業順利！</p>
+
+    <div class="company-info">
+      <div>青坊食品有限公司</div>
+      <div>04-7359885</div>
+      <div>2025/7/17</div>
+    </div>
+
+    <button class="print-btn" onclick="window.print()">列印此通知</button>
+  </div>
+
+  <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()">✏ 編輯</button>
+
+  <div class="highlight-toolbar" id="highlightToolbar">
+    <div class="toolbar-hl-label">螢光筆效果</div>
+    <div class="hl-colors">
+      <button class="hl-btn hl-yellow" title="黃色" onmousedown="event.preventDefault()" onclick="applyHighlight('#ffe082')"></button>
+      <button class="hl-btn hl-green" title="綠色" onmousedown="event.preventDefault()" onclick="applyHighlight('#a5d6a7')"></button>
+      <button class="hl-btn hl-blue" title="藍色" onmousedown="event.preventDefault()" onclick="applyHighlight('#90caf9')"></button>
+      <button class="hl-btn hl-pink" title="粉色" onmousedown="event.preventDefault()" onclick="applyHighlight('#f48fb1')"></button>
+      <button class="hl-remove" title="移除螢光筆" onmousedown="event.preventDefault()" onclick="removeHighlight()">✕</button>
+    </div>
+    <button class="toolbar-done-btn" onclick="doneEditing()">✓ 完成</button>
+  </div>
+
+  <script>
+    let activeSection = null;
+    const FULL_EDIT_SELECTORS = ['.card-title', 'p.body-text', 'p.footer-message', '.company-info'];
+
+    function toggleEditMode() {
+      if (document.body.classList.contains('edit-mode')) {
+        exitEditMode();
+      } else {
+        enterEditMode();
+      }
+    }
+
+    function enterEditMode() {
+      document.body.classList.add('edit-mode');
+      const btn = document.getElementById('editModeBtn');
+      btn.classList.add('active');
+      btn.textContent = '✕ 結束編輯';
+
+      FULL_EDIT_SELECTORS.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => addPencilTo(el, el));
+      });
+    }
+
+    function addPencilTo(container, targetEl) {
+      container.style.position = 'relative';
+      const btn = document.createElement('button');
+      btn.className = 'pencil-btn';
+      btn.innerHTML = '✏';
+      btn.title = '編輯此區段';
+      btn.addEventListener('mousedown', e => e.preventDefault());
+      btn.addEventListener('click', () => startEditing(targetEl, btn));
+      targetEl._pencilBtn = btn;
+      container.appendChild(btn);
+    }
+
+    function exitEditMode() {
+      if (activeSection) doneEditing();
+
+      document.body.classList.remove('edit-mode');
+      const btn = document.getElementById('editModeBtn');
+      btn.classList.remove('active');
+      btn.textContent = '✏ 編輯';
+
+      document.querySelectorAll('.pencil-btn').forEach(b => b.remove());
+
+      FULL_EDIT_SELECTORS.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => {
+          el.style.position = '';
+          delete el._pencilBtn;
+        });
+      });
+    }
+
+    function startEditing(section, pencilBtn) {
+      if (activeSection === section) return;
+      if (activeSection) doneEditing();
+
+      activeSection = section;
+      section.contentEditable = 'true';
+      section.classList.add('editing-active');
+      section.focus();
+
+      const pb = pencilBtn || section._pencilBtn;
+      if (pb) pb.style.visibility = 'hidden';
+
+      document.getElementById('highlightToolbar').classList.add('visible');
+    }
+
+    function doneEditing() {
+      if (!activeSection) return;
+
+      activeSection.removeAttribute('contenteditable');
+      activeSection.classList.remove('editing-active');
+
+      const pb = activeSection._pencilBtn;
+      if (pb) pb.style.visibility = '';
+
+      activeSection = null;
+      document.getElementById('highlightToolbar').classList.remove('visible');
+    }
+
+    function applyHighlight(color) {
+      if (!activeSection) return;
+      activeSection.focus();
+      document.execCommand('hiliteColor', false, color);
+    }
+
+    function removeHighlight() {
+      if (!activeSection) return;
+      activeSection.focus();
+      document.execCommand('hiliteColor', false, 'transparent');
+    }
+
+    function addPriceRow() {
+      const table = document.querySelector('.price-table');
+      const addBtn = table.querySelector('.add-row-btn');
+
+      const row = document.createElement('div');
+      row.className = 'price-row';
+
+      const labelInput = document.createElement('input');
+      labelInput.type = 'text';
+      labelInput.className = 'price-label-input';
+      labelInput.placeholder = '品項名稱';
+      labelInput.maxLength = 8;
+
+      const priceInput = document.createElement('input');
+      priceInput.type = 'number';
+      priceInput.className = 'price-input';
+      priceInput.value = '0';
+      priceInput.min = '0';
+
+      const unit = document.createElement('span');
+      unit.className = 'price-unit';
+      unit.textContent = '元';
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-row-btn';
+      deleteBtn.innerHTML = '✕';
+      deleteBtn.title = '刪除此品項';
+      deleteBtn.onclick = () => row.remove();
+
+      row.appendChild(labelInput);
+      row.appendChild(priceInput);
+      row.appendChild(unit);
+      row.appendChild(deleteBtn);
+
+      table.insertBefore(row, addBtn);
+      labelInput.focus();
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!activeSection) return;
+      if (activeSection.contains(e.target)) return;
+      if (document.getElementById('highlightToolbar').contains(e.target)) return;
+      if (e.target.id === 'editModeBtn') return;
+      doneEditing();
+    });
+  </script>
+</body>
+</html>
