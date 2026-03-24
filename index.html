@@ -114,10 +114,7 @@
         </div>
         <div class="viewer-header-right">
           <button class="clear-viewer-btn hidden" id="clear-viewer-btn" onclick="clearViewerData()">✕ 清除資料</button>
-          <button class="reupload-btn hidden" id="reupload-btn"
-                  onclick="document.getElementById('file-input2').click()">重新上傳
-          </button>
-          <input type="file" id="file-input2" accept=".xlsx,.xls" multiple>
+          <button class="import-more-btn hidden" id="import-more-btn" onclick="openImportModal()">＋ 匯入</button>
         </div>
       </div>
 
@@ -155,6 +152,24 @@
           <div class="cards-grid" id="cards-grid"></div>
         </div>
         <div class="status-bar" id="status-bar"></div>
+      </div>
+    </div>
+
+    <!-- ===== 匯入 Modal ===== -->
+    <div class="import-modal-backdrop hidden" id="import-modal">
+      <div class="import-modal-card">
+        <div class="import-modal-header">
+          <span>新增匯入資料</span>
+          <button class="import-modal-close" onclick="closeImportModal()">✕</button>
+        </div>
+        <div class="import-drop-zone" id="import-drop-zone">
+          <div class="import-drop-icon">📂</div>
+          <div class="import-drop-title">拖曳 Excel 檔案至此</div>
+          <div class="import-drop-or">或</div>
+          <label class="upload-btn-label" for="file-input-modal">選擇檔案</label>
+          <input type="file" id="file-input-modal" accept=".xlsx,.xls" multiple>
+        </div>
+        <p class="import-modal-hint">工作表名稱會作為路線名稱，相同路線會合併資料</p>
       </div>
     </div>
 

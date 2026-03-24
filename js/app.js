@@ -328,7 +328,7 @@ function clearViewerData() {
 
     document.getElementById('data-section').classList.add('hidden');
     document.getElementById('upload-section').classList.remove('hidden');
-    document.getElementById('reupload-btn').classList.add('hidden');
+    document.getElementById('import-more-btn').classList.add('hidden');
     document.getElementById('export-btn').classList.add('hidden');
     document.getElementById('screenshot-btn').classList.add('hidden');
     document.getElementById('clear-viewer-btn').classList.add('hidden');
@@ -367,7 +367,7 @@ function loadViewerDataFromStorage() {
         renderCards();
         document.getElementById('upload-section').classList.add('hidden');
         document.getElementById('data-section').classList.remove('hidden');
-        document.getElementById('reupload-btn').classList.remove('hidden');
+        document.getElementById('import-more-btn').classList.remove('hidden');
         document.getElementById('export-btn').classList.remove('hidden');
         document.getElementById('screenshot-btn').classList.remove('hidden');
         document.getElementById('clear-viewer-btn').classList.remove('hidden');
@@ -519,7 +519,7 @@ function finalizeRender() {
     renderCards();
     document.getElementById('upload-section').classList.add('hidden');
     document.getElementById('data-section').classList.remove('hidden');
-    document.getElementById('reupload-btn').classList.remove('hidden');
+    document.getElementById('import-more-btn').classList.remove('hidden');
     document.getElementById('export-btn').classList.remove('hidden');
     document.getElementById('screenshot-btn').classList.remove('hidden');
     document.getElementById('clear-viewer-btn').classList.remove('hidden');
@@ -527,12 +527,16 @@ function finalizeRender() {
     saveViewerDataToStorage();
 }
 
+var _dragSrcRoute = null;
+
 function buildRouteTabs() {
     var container = document.getElementById('route-tabs');
     container.innerHTML = '';
     Object.keys(allRoutes).forEach(function (r) {
         var div = document.createElement('div');
         div.className = 'rtab' + (r === currentRoute ? ' active' : '');
+        div.draggable = true;
+        div.dataset.route = r;
 
         var label = document.createElement('span');
         label.className = 'rtab-label';
@@ -562,6 +566,49 @@ function buildRouteTabs() {
                 deleteRoute(route);
             };
         })(r));
+
+        // 拖曳事件
+        div.addEventListener('dragstart', function (e) {
+            _dragSrcRoute = r;
+            e.dataTransfer.effectAllowed = 'move';
+            setTimeout(function () {
+                div.classList.add('rtab-dragging');
+            }, 0);
+        });
+        div.addEventListener('dragend', function () {
+            div.classList.remove('rtab-dragging');
+            container.querySelectorAll('.rtab').forEach(function (el) {
+                el.classList.remove('rtab-drag-over');
+            });
+        });
+        div.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (_dragSrcRoute === r) return;
+            container.querySelectorAll('.rtab').forEach(function (el) {
+                el.classList.remove('rtab-drag-over');
+            });
+            div.classList.add('rtab-drag-over');
+        });
+        div.addEventListener('dragleave', function () {
+            div.classList.remove('rtab-drag-over');
+        });
+        div.addEventListener('drop', function (e) {
+            e.preventDefault();
+            if (_dragSrcRoute === r) return;
+            // 重新排列 allRoutes key 順序
+            var keys = Object.keys(allRoutes);
+            var fromIdx = keys.indexOf(_dragSrcRoute);
+            var toIdx = keys.indexOf(r);
+            keys.splice(fromIdx, 1);
+            keys.splice(toIdx, 0, _dragSrcRoute);
+            var newRoutes = {};
+            keys.forEach(function (k) {
+                newRoutes[k] = allRoutes[k];
+            });
+            allRoutes = newRoutes;
+            buildRouteTabs();
+        });
 
         div.appendChild(label);
         div.appendChild(count);
@@ -904,10 +951,41 @@ function captureRouteScreenshot() {
 document.getElementById('file-input').addEventListener('change', function (e) {
     processFiles(e.target.files);
 });
-document.getElementById('file-input2').addEventListener('change', function (e) {
-    document.getElementById('data-section').classList.add('hidden');
-    document.getElementById('upload-section').classList.remove('hidden');
-    processFiles(e.target.files);
+
+// ========== 匯入 Modal ==========
+function openImportModal() {
+    document.getElementById('import-modal').classList.remove('hidden');
+}
+
+function closeImportModal() {
+    document.getElementById('import-modal').classList.add('hidden');
+    document.getElementById('file-input-modal').value = '';
+}
+
+document.getElementById('import-modal').addEventListener('click', function (e) {
+    if (e.target === this) closeImportModal();
+});
+
+document.getElementById('file-input-modal').addEventListener('change', function (e) {
+    if (!e.target.files.length) return;
+    appendFiles(e.target.files);
+    closeImportModal();
+});
+
+var _idz = document.getElementById('import-drop-zone');
+_idz.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    _idz.classList.add('dragover');
+});
+_idz.addEventListener('dragleave', function () {
+    _idz.classList.remove('dragover');
+});
+_idz.addEventListener('drop', function (e) {
+    e.preventDefault();
+    _idz.classList.remove('dragover');
+    if (!e.dataTransfer.files.length) return;
+    appendFiles(e.dataTransfer.files);
+    closeImportModal();
 });
 
 var dz = document.getElementById('drop-zone');
@@ -923,3 +1001,57 @@ dz.addEventListener('drop', function (e) {
     dz.classList.remove('dragover');
     processFiles(e.dataTransfer.files);
 });
+
+
+function appendFiles(files) {
+    var total = files.length;
+    var processed = 0;
+    for (var fi = 0; fi < files.length; fi++) {
+        (function (file) {
+            var reader = new FileReader();
+            reader.onload = function (ev) {
+                var wb = XLSX.read(ev.target.result, {type: 'array'});
+                for (var si = 0; si < wb.SheetNames.length; si++) {
+                    var sheetName = wb.SheetNames[si];
+                    var custs = parseSheet(wb.Sheets[sheetName]);
+                    if (!custs.length) continue;
+                    var route = (sheetName !== 'Sheet1' && sheetName !== 'Sheet2')
+                        ? sheetName : file.name.replace(/\.[^.]+$/, '');
+                    if (!allRoutes[route]) allRoutes[route] = [];
+                    allRoutes[route] = allRoutes[route].concat(custs);
+                }
+                processed++;
+                if (processed >= total) finalizeAppend();
+            };
+            reader.readAsArrayBuffer(file);
+        })(files[fi]);
+    }
+}
+
+function finalizeAppend() {
+    var seen = {};
+    var order = [];
+    Object.keys(allRoutes).forEach(function (r) {
+        allRoutes[r].forEach(function (c) {
+            Object.keys(c.prices).forEach(function (it) {
+                if (!seen[it]) {
+                    seen[it] = true;
+                    order.push(it);
+                }
+            });
+        });
+    });
+    allItems = order;
+
+    var routeNames = Object.keys(allRoutes);
+    var totalC = 0;
+    routeNames.forEach(function (r) {
+        totalC += allRoutes[r].length;
+    });
+    document.getElementById('header-sub').textContent =
+        routeNames.length + ' 條路線 · ' + totalC + ' 位客戶 · ' + allItems.length + ' 種品項';
+
+    buildRouteTabs();
+    renderCards();
+    saveViewerDataToStorage();
+}
