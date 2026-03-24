@@ -533,14 +533,70 @@ function buildRouteTabs() {
     Object.keys(allRoutes).forEach(function (r) {
         var div = document.createElement('div');
         div.className = 'rtab' + (r === currentRoute ? ' active' : '');
-        div.innerHTML = r + '<span class="rtab-count">' + allRoutes[r].length + '</span>';
-        div.addEventListener('click', (function (route) {
+
+        var label = document.createElement('span');
+        label.className = 'rtab-label';
+        label.textContent = r;
+        label.addEventListener('click', (function (route) {
             return function () {
                 switchRoute(route);
             };
         })(r));
+
+        var count = document.createElement('span');
+        count.className = 'rtab-count';
+        count.textContent = allRoutes[r].length;
+        count.addEventListener('click', (function (route) {
+            return function () {
+                switchRoute(route);
+            };
+        })(r));
+
+        var del = document.createElement('button');
+        del.className = 'rtab-del';
+        del.textContent = '✕';
+        del.title = '刪除此分頁資料';
+        del.addEventListener('click', (function (route) {
+            return function (e) {
+                e.stopPropagation();
+                deleteRoute(route);
+            };
+        })(r));
+
+        div.appendChild(label);
+        div.appendChild(count);
+        div.appendChild(del);
         container.appendChild(div);
     });
+}
+
+function deleteRoute(r) {
+    var routeNames = Object.keys(allRoutes);
+    if (routeNames.length === 1) {
+        clearViewerData();
+        return;
+    }
+    delete allRoutes[r];
+    var remaining = Object.keys(allRoutes);
+    if (currentRoute === r) {
+        currentRoute = remaining[0];
+    }
+    // 重新計算 allItems（取所有路線品項聯集，保留順序）
+    var seen = {};
+    var order = [];
+    remaining.forEach(function (route) {
+        allRoutes[route].forEach(function (c) {
+            Object.keys(c.prices).forEach(function (it) {
+                if (!seen[it]) {
+                    seen[it] = true;
+                    order.push(it);
+                }
+            });
+        });
+    });
+    allItems = order;
+    buildRouteTabs();
+    renderCards();
 }
 
 function switchRoute(r) {
