@@ -651,26 +651,137 @@ function onNewPriceInput(custId, item, val) {
     }
 }
 
-function exportExcel() {
-    var wb = XLSX.utils.book_new();
+async function exportExcel() {
+    var COLS_PER_STORE = 4; // 品項, 現行單價, 新單價, 漲幅
+    var STORES_PER_ROW = 5;
+
+    var THIN_BORDER = {
+        top: {style: 'thin'},
+        left: {style: 'thin'},
+        bottom: {style: 'thin'},
+        right: {style: 'thin'}
+    };
+
+    // 每家店三層底色：店名列 / 標題列 / 資料列
+    var STORE_COLORS = [
+        {name: 'FF81C784', header: 'FFA5D6A7', data: 'FFE8F5E9'}, // 綠
+        {name: 'FF64B5F6', header: 'FF90CAF9', data: 'FFE3F2FD'}, // 藍
+        {name: 'FFFFB74D', header: 'FFFFCC80', data: 'FFFFF3E0'}, // 橙
+        {name: 'FFEF9A9A', header: 'FFFFC8C8', data: 'FFFFF0F0'}, // 玫瑰
+        {name: 'FFCE93D8', header: 'FFE1BEE7', data: 'FFF3E5F5'}, // 紫
+    ];
+
+    var workbook = new ExcelJS.Workbook();
     Object.keys(allRoutes).forEach(function (routeName) {
-        var rows = [['\u5ba2\u6236\u7de8\u865f', '\u5ba2\u6236\u540d\u7a31', '\u54c1\u9805', '\u73fe\u884c\u55ae\u50f9', '\u65b0\u55ae\u50f9']];
-        allRoutes[routeName].forEach(function (c) {
-            Object.keys(c.prices).forEach(function (item) {
-                var key = npKey(c.id, item);
-                var np = newPrices[key] != null ? newPrices[key] : '';
-                rows.push([c.id, c.name, item, c.prices[item], np]);
+        var customers = allRoutes[routeName];
+        var sheet = workbook.addWorksheet(routeName.slice(0, 31));
+
+        // 欄寬：每家店重複 4 欄
+        var colDefs = [];
+        for (var k = 0; k < STORES_PER_ROW; k++) {
+            colDefs.push({width: 16}); // 品項
+            colDefs.push({width: 11}); // 現行單價
+            colDefs.push({width: 11}); // 新單價
+            colDefs.push({width: 9}); // 漲幅
+        }
+        sheet.columns = colDefs;
+
+        for (var i = 0; i < customers.length; i += STORES_PER_ROW) {
+            var group = customers.slice(i, i + STORES_PER_ROW);
+
+            // ── 店名列（merge 橫跨 4 欄）──
+            var nameArr = new Array(STORES_PER_ROW * COLS_PER_STORE).fill('');
+            group.forEach(function (c, idx) {
+                nameArr[idx * COLS_PER_STORE] = c.name + ' #' + c.id;
             });
-        });
-        var ws = XLSX.utils.aoa_to_sheet(rows);
-        ws['!cols'] = [{wch: 10}, {wch: 14}, {wch: 14}, {wch: 10}, {wch: 10}];
-        XLSX.utils.book_append_sheet(wb, ws, routeName.slice(0, 31));
+            var nameRow = sheet.addRow(nameArr);
+            nameRow.height = 20;
+            group.forEach(function (c, idx) {
+                var colStart = idx * COLS_PER_STORE + 1;
+                sheet.mergeCells(nameRow.number, colStart, nameRow.number, colStart + COLS_PER_STORE - 1);
+                var cell = nameRow.getCell(colStart);
+                cell.fill = {type: 'pattern', pattern: 'solid', fgColor: {argb: STORE_COLORS[idx % 5].name}};
+                cell.font = {bold: true, size: 11};
+                cell.alignment = {horizontal: 'center', vertical: 'middle'};
+                cell.border = THIN_BORDER;
+            });
+
+            // ── 欄位標題列 ──
+            var headerArr = new Array(STORES_PER_ROW * COLS_PER_STORE).fill('');
+            group.forEach(function (c, idx) {
+                var base = idx * COLS_PER_STORE;
+                headerArr[base] = '品項';
+                headerArr[base + 1] = '現行單價';
+                headerArr[base + 2] = '新單價';
+                headerArr[base + 3] = '漲幅';
+            });
+            var headerRow = sheet.addRow(headerArr);
+            group.forEach(function (c, idx) {
+                var colStart = idx * COLS_PER_STORE + 1;
+                for (var p = 0; p < COLS_PER_STORE; p++) {
+                    var cell = headerRow.getCell(colStart + p);
+                    cell.fill = {type: 'pattern', pattern: 'solid', fgColor: {argb: STORE_COLORS[idx % 5].header}};
+                    cell.font = {bold: true};
+                    cell.alignment = {horizontal: p === 0 ? 'left' : 'center'};
+                    cell.border = THIN_BORDER;
+                }
+            });
+
+            // ── 品項資料列 ──
+            var maxItems = 0;
+            group.forEach(function (c) {
+                var cnt = Object.keys(c.prices).length;
+                if (cnt > maxItems) maxItems = cnt;
+            });
+
+            for (var j = 0; j < maxItems; j++) {
+                var itemArr = new Array(STORES_PER_ROW * COLS_PER_STORE).fill('');
+                group.forEach(function (c, idx) {
+                    var items = Object.keys(c.prices);
+                    if (j < items.length) {
+                        var item = items[j];
+                        var key = npKey(c.id, item);
+                        var oldP = c.prices[item];
+                        var np = newPrices[key] != null ? newPrices[key] : '';
+                        var diff = np !== '' ? (np - oldP) : '';
+                        var base = idx * COLS_PER_STORE;
+                        itemArr[base] = item;
+                        itemArr[base + 1] = oldP;
+                        itemArr[base + 2] = np;
+                        itemArr[base + 3] = diff;
+                    }
+                });
+                var dataRow = sheet.addRow(itemArr);
+                group.forEach(function (c, idx) {
+                    var colStart = idx * COLS_PER_STORE + 1;
+                    for (var p = 0; p < COLS_PER_STORE; p++) {
+                        var dc = dataRow.getCell(colStart + p);
+                        dc.fill = {type: 'pattern', pattern: 'solid', fgColor: {argb: STORE_COLORS[idx % 5].data}};
+                        dc.border = THIN_BORDER;
+                    }
+                });
+            }
+
+            // 組間空白列
+            sheet.addRow([]);
+        }
     });
+
+    // 下載檔案
+    var buffer = await workbook.xlsx.writeBuffer();
+    var blob = new Blob([buffer], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
     var today = new Date();
     var ds = today.getFullYear()
         + String(today.getMonth() + 1).padStart(2, '0')
         + String(today.getDate()).padStart(2, '0');
-    XLSX.writeFile(wb, '\u55ae\u50f9\u8abf\u6574_' + ds + '.xlsx');
+    a.href = url;
+    a.download = '\u55ae\u50f9\u8abf\u6574_' + ds + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 function captureRouteScreenshot() {
