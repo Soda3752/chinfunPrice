@@ -7,6 +7,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -147,6 +148,7 @@
           </div>
           <button class="export-btn hidden" id="export-btn" onclick="exportExcel()">⬇ 匯出 Excel</button>
           <button class="screenshot-btn hidden" id="screenshot-btn" onclick="captureRouteScreenshot()">📷 截圖</button>
+          <button class="pdf-btn hidden" id="pdf-btn" onclick="exportRoutePDF()">📄 PDF</button>
         </div>
         <div id="cards-section">
           <div class="cards-grid" id="cards-grid"></div>
