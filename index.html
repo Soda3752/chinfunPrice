@@ -3,668 +3,163 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>價格調整通知</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
-      background: #f5f5f5;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
-      padding: 40px 16px;
-    }
-
-    .card {
-      background: #fff;
-      width: 480px;
-      padding: 36px 40px 40px;
-      border-radius: 4px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    }
-
-    .card-title {
-      text-align: center;
-      font-size: 22px;
-      font-weight: bold;
-      color: #222;
-      padding-bottom: 14px;
-      border-bottom: 2.5px solid #4caf50;
-      margin-bottom: 28px;
-    }
-
-    .body-text {
-      font-size: 15px;
-      color: #333;
-      line-height: 1.9;
-      margin-bottom: 16px;
-    }
-
-    .highlight-yellow {
-      background-color: #ffe082;
-      padding: 0 2px;
-    }
-
-    .price-table {
-      border-left: 4px solid #4caf50;
-      padding: 18px 24px;
-      margin: 20px 0;
-      background: #fafafa;
-    }
-
-    .price-row {
-      display: flex;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
-    .price-row:last-child {
-      margin-bottom: 0;
-    }
-
-    .price-label {
-      font-size: 15px;
-      font-weight: bold;
-      color: #222;
-      width: 100px;
-      flex-shrink: 0;
-    }
-
-    .price-input {
-      width: 100px;
-      padding: 6px 10px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      font-size: 15px;
-      text-align: center;
-      color: #333;
-      outline: none;
-    }
-
-    .price-input:focus {
-      border-color: #4caf50;
-    }
-
-    .price-unit {
-      font-size: 15px;
-      color: #333;
-      margin-left: 8px;
-    }
-
-    .price-unit-input {
-      width: 48px;
-      padding: 0;
-      border: none;
-      background: none;
-      font-size: 15px;
-      color: #333;
-      font-family: inherit;
-      outline: none;
-      pointer-events: none;
-      margin-left: 1px;
-    }
-    body.edit-mode .price-unit-input {
-      padding: 4px 6px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      background: #fff;
-      pointer-events: auto;
-    }
-    body.edit-mode .price-unit-input:focus { border-color: #4caf50; }
-
-    .divider {
-      border: none;
-      border-top: 1px solid #e0e0e0;
-      margin: 24px 0;
-    }
-
-    .footer-message {
-      text-align: center;
-      font-size: 14px;
-      color: #444;
-      margin-bottom: 20px;
-      line-height: 1.8;
-    }
-
-    .company-info {
-      text-align: right;
-      font-size: 14px;
-      color: #555;
-      line-height: 2;
-      margin-bottom: 28px;
-    }
-
-    .print-btn {
-      display: block;
-      margin: 0 auto;
-      background-color: #4caf50;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 12px 48px;
-      font-size: 16px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .print-btn:hover {
-      background-color: #388e3c;
-    }
-
-    /* ===== 編輯模式 ===== */
-    .edit-mode-btn {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      background: #fff;
-      border: 2px solid #4caf50;
-      color: #4caf50;
-      border-radius: 6px;
-      padding: 8px 16px;
-      font-size: 14px;
-      font-family: inherit;
-      cursor: pointer;
-      z-index: 1000;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-      transition: all 0.2s;
-    }
-    .edit-mode-btn:hover { background: #f1f8f1; }
-    .edit-mode-btn.active { background: #4caf50; color: #fff; }
-
-    .width-control {
-      position: fixed;
-      top: 58px;
-      right: 16px;
-      background: #fff;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 8px 14px;
-      z-index: 1000;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-      display: none;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: #555;
-      white-space: nowrap;
-    }
-    body.edit-mode .width-control { display: flex; }
-    #widthSlider {
-      width: 110px;
-      cursor: pointer;
-      accent-color: #4caf50;
-    }
-    #widthValue {
-      min-width: 26px;
-      text-align: right;
-      font-weight: bold;
-      color: #333;
-    }
-
-    .highlight-toolbar {
-      position: fixed;
-      top: 114px;
-      right: 16px;
-      background: #fff;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 10px 14px;
-      z-index: 1000;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-      width: 180px;
-    }
-    .highlight-toolbar.visible { display: flex; }
-    .toolbar-hl-label { font-size: 12px; color: #777; }
-    .hl-colors { display: flex; gap: 6px; align-items: center; }
-    .hl-btn {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      border: 2px solid #e0e0e0;
-      cursor: pointer;
-      padding: 0;
-      transition: border-color 0.15s, transform 0.1s;
-    }
-    .hl-btn:hover { border-color: #555; transform: scale(1.15); }
-    .hl-yellow { background: #ffe082; }
-    .hl-green  { background: #a5d6a7; }
-    .hl-blue   { background: #90caf9; }
-    .hl-pink   { background: #f48fb1; }
-    .hl-remove {
-      width: 22px;
-      height: 22px;
-      background: #fff;
-      border: 2px solid #ddd;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 11px;
-      color: #aaa;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      transition: all 0.15s;
-    }
-    .hl-remove:hover { border-color: #e53935; color: #e53935; }
-    .toolbar-done-btn {
-      background: #4caf50;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 6px 0;
-      font-size: 13px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .toolbar-done-btn:hover { background: #388e3c; }
-
-    body.edit-mode .card { padding-right: 76px; }
-
-    .pencil-btn {
-      position: absolute;
-      right: -50px;
-      top: 2px;
-      width: 26px;
-      height: 26px;
-      background: #fff;
-      border: 1.5px solid #ddd;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 12px;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      color: #888;
-      transition: all 0.15s;
-      z-index: 5;
-      padding: 0;
-      line-height: 1;
-    }
-    .pencil-btn:hover { border-color: #4caf50; color: #4caf50; background: #f1f8f1; }
-    body.edit-mode .pencil-btn { display: flex; }
-
-    .editing-active {
-      outline: 2px dashed #4caf50 !important;
-      outline-offset: 2px;
-      border-radius: 2px;
-    }
-
-    /* ===== 新增品項 ===== */
-    .add-row-btn {
-      display: none;
-    }
-    body.edit-mode .add-row-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      width: 100%;
-      background: none;
-      border: 1.5px dashed #4caf50;
-      color: #4caf50;
-      border-radius: 4px;
-      padding: 7px 0;
-      font-size: 14px;
-      font-family: inherit;
-      cursor: pointer;
-      margin-top: 12px;
-      transition: background 0.2s;
-    }
-    .add-row-btn:hover { background: #f1f8f1; }
-
-    .price-label-input {
-      width: 100px;
-      padding: 0;
-      border: none;
-      background: none;
-      font-size: 15px;
-      font-weight: bold;
-      color: #222;
-      font-family: inherit;
-      flex-shrink: 0;
-      outline: none;
-      pointer-events: none;
-    }
-    body.edit-mode .price-label-input {
-      padding: 4px 6px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      background: #fff;
-      pointer-events: auto;
-    }
-    body.edit-mode .price-label-input:focus { border-color: #4caf50; }
-
-    .delete-row-btn {
-      display: none;
-      background: none;
-      border: none;
-      color: #ccc;
-      cursor: pointer;
-      font-size: 16px;
-      margin-left: 6px;
-      padding: 0 4px;
-      line-height: 1;
-      transition: color 0.15s;
-    }
-    .delete-row-btn:hover { color: #e53935; }
-    body.edit-mode .delete-row-btn { display: inline; }
-
-    @media print {
-      body {
-        background: #fff;
-        padding: 0;
-      }
-      .card {
-        box-shadow: none;
-        width: 100%;
-      }
-      .print-btn,
-      .edit-mode-btn,
-      .highlight-toolbar,
-      .pencil-btn,
-      .add-row-btn,
-      .delete-row-btn {
-        display: none !important;
-      }
-    }
-  </style>
+  <title>青坊食品</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="card">
-    <div class="card-title">價格調整通知</div>
+<div id="app">
 
-    <p class="body-text">親愛的顧客，您好：</p>
-    <p class="body-text">感謝您一直以來對本公司的信任與支持。</p>
-    <p class="body-text">
-      由於近期麵粉、奶油等主要原物料成本大幅上漲，加上運輸及人力成本增加，為維持產品品質與服務水準，本公司秉持回饋顧客精神，已
-      <span class="highlight-yellow">一年未調整價格</span>。為持續提供優質產品與服務，將自
-      <span class="highlight-yellow">2026年3月1日</span>
-      起調整部分商品價格：
-    </p>
+  <!-- ========== SIDEBAR ========== -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">青坊<br>食品</div>
+    <button class="tab-btn active" data-page="notice">
+      <span class="tab-icon">📋</span>
+      <span>價格通知</span>
+    </button>
+    <button class="tab-btn" data-page="viewer">
+      <span class="tab-icon">📊</span>
+      <span>客戶總覽</span>
+    </button>
+  </nav>
 
-    <div class="price-table">
-      <div class="price-row">
-        <input class="price-label-input" type="text" value="吐司類調漲" maxlength="8">
-        <input class="price-input" type="number" value="0" min="0">
-        <span class="price-unit">元/</span>
-        <input class="price-unit-input" type="text" value="條" maxlength="4" placeholder="單位">
-        <button class="delete-row-btn" title="刪除此品項" onclick="this.closest('.price-row').remove()">✕</button>
+  <!-- ========== CONTENT ========== -->
+  <div id="content">
+
+    <!-- ===== PAGE 1: 價格通知 ===== -->
+    <div id="notice-page" class="page active">
+      <div class="notice-card">
+        <div class="card-title">價格調整通知</div>
+
+        <p class="body-text">親愛的顧客，您好：</p>
+        <p class="body-text">感謝您一直以來對本公司的信任與支持。</p>
+        <p class="body-text">
+          由於近期麵粉、奶油等主要原物料成本大幅上漲，加上運輸及人力成本增加，為維持產品品質與服務水準，本公司秉持回饋顧客精神，已
+          <span class="highlight-yellow">一年未調整價格</span>。為持續提供優質產品與服務，將自
+          <span class="highlight-yellow">2026年3月1日</span>
+          起調整部分商品價格：
+        </p>
+
+        <div class="price-table">
+          <div class="price-row">
+            <input class="price-label-input" type="text" value="吐司類調漲" maxlength="8">
+            <input class="price-input" type="number" value="0" min="0">
+            <span class="price-unit">元/</span>
+            <input class="price-unit-input" type="text" value="條" maxlength="4" placeholder="單位">
+            <button class="delete-row-btn" title="刪除此品項" onclick="this.closest('.price-row').remove()">✕</button>
+          </div>
+          <div class="price-row">
+            <input class="price-label-input" type="text" value="漢堡類調漲" maxlength="8">
+            <input class="price-input" type="number" value="0" min="0">
+            <span class="price-unit">元/</span>
+            <input class="price-unit-input" type="text" value="個" maxlength="4" placeholder="單位">
+            <button class="delete-row-btn" title="刪除此品項" onclick="this.closest('.price-row').remove()">✕</button>
+          </div>
+          <button class="add-row-btn" onclick="addPriceRow()">＋ 新增品項</button>
+        </div>
+
+        <p class="body-text">
+          我們深知此次調整可能造成不便，但為了持續提供優質的產品與服務，實屬必要之舉。未來我們將持續努力控制成本，提供更好的產品品質。
+        </p>
+
+        <hr class="divider">
+
+        <p class="footer-message">再次感謝您的理解與支持，敬祝身體健康，事業順利！</p>
+
+        <div class="company-info">
+          <div>青坊食品有限公司</div>
+          <div>04-7359885</div>
+          <div>2025/7/17</div>
+        </div>
+
+        <button class="print-btn" onclick="window.print()">列印此通知</button>
       </div>
-      <div class="price-row">
-        <input class="price-label-input" type="text" value="漢堡類調漲" maxlength="8">
-        <input class="price-input" type="number" value="0" min="0">
-        <span class="price-unit">元/</span>
-        <input class="price-unit-input" type="text" value="個" maxlength="4" placeholder="單位">
-        <button class="delete-row-btn" title="刪除此品項" onclick="this.closest('.price-row').remove()">✕</button>
+
+      <button class="reset-notice-btn" id="resetNoticeBtn" onclick="resetNoticeToDefault()">↩ 還原預設</button>
+      <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()">✏ 編輯</button>
+
+      <div class="width-control" id="widthControl">
+        <span>頁面寬度</span>
+        <input type="range" id="widthSlider" min="360" max="900" step="10" value="480">
+        <span id="widthValue">480</span>px
       </div>
-      <button class="add-row-btn" onclick="addPriceRow()">＋ 新增品項</button>
+
+      <div class="highlight-toolbar" id="highlightToolbar">
+        <div class="toolbar-hl-label">螢光筆效果</div>
+        <div class="hl-colors">
+          <button class="hl-btn hl-yellow" title="黃色" onmousedown="event.preventDefault()"
+                  onclick="applyHighlight('#ffe082')"></button>
+          <button class="hl-btn hl-green" title="綠色" onmousedown="event.preventDefault()"
+                  onclick="applyHighlight('#a5d6a7')"></button>
+          <button class="hl-btn hl-blue" title="藍色" onmousedown="event.preventDefault()"
+                  onclick="applyHighlight('#90caf9')"></button>
+          <button class="hl-btn hl-pink" title="粉色" onmousedown="event.preventDefault()"
+                  onclick="applyHighlight('#f48fb1')"></button>
+          <button class="hl-remove" title="移除螢光筆" onmousedown="event.preventDefault()" onclick="removeHighlight()">
+            ✕
+          </button>
+        </div>
+        <button class="toolbar-done-btn" onclick="doneEditing()">✓ 完成</button>
+      </div>
     </div>
 
-    <p class="body-text">
-      我們深知此次調整可能造成不便，但為了持續提供優質的產品與服務，實屬必要之舉。未來我們將持續努力控制成本，提供更好的產品品質。
-    </p>
+    <!-- ===== PAGE 2: 客戶總覽 ===== -->
+    <div id="viewer-page" class="page">
+      <div class="viewer-header">
+        <div>
+          <div class="viewer-header-title">客戶品項單價總覽</div>
+          <div class="viewer-header-sub" id="header-sub">請上傳帳單 Excel 檔案</div>
+        </div>
+        <div class="viewer-header-right">
+          <button class="clear-viewer-btn hidden" id="clear-viewer-btn" onclick="clearViewerData()">✕ 清除資料</button>
+          <button class="reupload-btn hidden" id="reupload-btn"
+                  onclick="document.getElementById('file-input2').click()">重新上傳
+          </button>
+          <input type="file" id="file-input2" accept=".xlsx,.xls" multiple>
+        </div>
+      </div>
 
-    <hr class="divider">
+      <div id="upload-section">
+        <div class="upload-zone" id="drop-zone">
+          <div class="upload-icon">📂</div>
+          <div class="upload-title">上傳帳單 Excel 檔案</div>
+          <div class="upload-hint">
+            支援 .xlsx / .xls 格式<br>
+            工作表名稱會作為路線名稱<br>
+            可一次上傳多個檔案
+          </div>
+          <label class="upload-btn-label" for="file-input">選擇檔案</label>
+          <input type="file" id="file-input" accept=".xlsx,.xls" multiple>
+        </div>
+      </div>
 
-    <p class="footer-message">再次感謝您的理解與支持，敬祝身體健康，事業順利！</p>
-
-    <div class="company-info">
-      <div>青坊食品有限公司</div>
-      <div>04-7359885</div>
-      <div>2025/7/17</div>
+      <div id="data-section" class="hidden">
+        <div class="route-tabs" id="route-tabs"></div>
+        <div class="toolbar">
+          <span class="stat-chip" id="stat-customers"></span>
+          <span class="stat-chip" id="stat-items"></span>
+          <span class="changed-chip hidden" id="changed-chip"></span>
+          <div class="search-wrap">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="8.5" cy="8.5" r="5.5"/>
+              <line x1="13" y1="13" x2="18" y2="18"/>
+            </svg>
+            <input id="search" type="text" placeholder="搜尋客戶名稱或編號…" oninput="renderCards()">
+          </div>
+          <button class="export-btn hidden" id="export-btn" onclick="exportExcel()">⬇ 匯出 Excel</button>
+          <button class="screenshot-btn hidden" id="screenshot-btn" onclick="captureRouteScreenshot()">📷 截圖</button>
+        </div>
+        <div id="cards-section">
+          <div class="cards-grid" id="cards-grid"></div>
+        </div>
+        <div class="status-bar" id="status-bar"></div>
+      </div>
     </div>
 
-    <button class="print-btn" onclick="window.print()">列印此通知</button>
-  </div>
+  </div><!-- #content -->
+</div><!-- #app -->
 
-  <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()">✏ 編輯</button>
-
-  <div class="width-control" id="widthControl">
-    <span>頁面寬度</span>
-    <input type="range" id="widthSlider" min="360" max="900" step="10" value="480">
-    <span id="widthValue">480</span>px
-  </div>
-
-  <div class="highlight-toolbar" id="highlightToolbar">
-    <div class="toolbar-hl-label">螢光筆效果</div>
-    <div class="hl-colors">
-      <button class="hl-btn hl-yellow" title="黃色" onmousedown="event.preventDefault()" onclick="applyHighlight('#ffe082')"></button>
-      <button class="hl-btn hl-green" title="綠色" onmousedown="event.preventDefault()" onclick="applyHighlight('#a5d6a7')"></button>
-      <button class="hl-btn hl-blue" title="藍色" onmousedown="event.preventDefault()" onclick="applyHighlight('#90caf9')"></button>
-      <button class="hl-btn hl-pink" title="粉色" onmousedown="event.preventDefault()" onclick="applyHighlight('#f48fb1')"></button>
-      <button class="hl-remove" title="移除螢光筆" onmousedown="event.preventDefault()" onclick="removeHighlight()">✕</button>
-    </div>
-    <button class="toolbar-done-btn" onclick="doneEditing()">✓ 完成</button>
-  </div>
-
-  <script>
-    let activeSection = null;
-    const FULL_EDIT_SELECTORS = ['.card-title', 'p.body-text', 'p.footer-message', '.company-info'];
-
-    function toggleEditMode() {
-      if (document.body.classList.contains('edit-mode')) {
-        exitEditMode();
-      } else {
-        enterEditMode();
-      }
-    }
-
-    function enterEditMode() {
-      document.body.classList.add('edit-mode');
-      const btn = document.getElementById('editModeBtn');
-      btn.classList.add('active');
-      btn.textContent = '✕ 結束編輯';
-
-      FULL_EDIT_SELECTORS.forEach(sel => {
-        document.querySelectorAll(sel).forEach(el => addPencilTo(el, el));
-      });
-    }
-
-    function addPencilTo(container, targetEl) {
-      container.style.position = 'relative';
-      const btn = document.createElement('button');
-      btn.className = 'pencil-btn';
-      btn.innerHTML = '✏';
-      btn.title = '編輯此區段';
-      btn.addEventListener('mousedown', e => e.preventDefault());
-      btn.addEventListener('click', () => startEditing(targetEl, btn));
-      targetEl._pencilBtn = btn;
-      container.appendChild(btn);
-    }
-
-    function exitEditMode() {
-      if (activeSection) doneEditing();
-
-      document.body.classList.remove('edit-mode');
-      const btn = document.getElementById('editModeBtn');
-      btn.classList.remove('active');
-      btn.textContent = '✏ 編輯';
-
-      document.querySelectorAll('.pencil-btn').forEach(b => b.remove());
-
-      FULL_EDIT_SELECTORS.forEach(sel => {
-        document.querySelectorAll(sel).forEach(el => {
-          el.style.position = '';
-          delete el._pencilBtn;
-        });
-      });
-
-      saveToStorage();
-    }
-
-    function startEditing(section, pencilBtn) {
-      if (activeSection === section) return;
-      if (activeSection) doneEditing();
-
-      activeSection = section;
-      section.contentEditable = 'true';
-      section.classList.add('editing-active');
-      section.focus();
-
-      const pb = pencilBtn || section._pencilBtn;
-      if (pb) pb.style.visibility = 'hidden';
-
-      document.getElementById('highlightToolbar').classList.add('visible');
-    }
-
-    function doneEditing() {
-      if (!activeSection) return;
-
-      activeSection.removeAttribute('contenteditable');
-      activeSection.classList.remove('editing-active');
-
-      const pb = activeSection._pencilBtn;
-      if (pb) pb.style.visibility = '';
-
-      activeSection = null;
-      document.getElementById('highlightToolbar').classList.remove('visible');
-    }
-
-    function applyHighlight(color) {
-      if (!activeSection) return;
-      activeSection.focus();
-      document.execCommand('hiliteColor', false, color);
-    }
-
-    function removeHighlight() {
-      if (!activeSection) return;
-      activeSection.focus();
-      document.execCommand('hiliteColor', false, 'transparent');
-    }
-
-    function createPriceRow(label, price, unit) {
-      const row = document.createElement('div');
-      row.className = 'price-row';
-
-      const labelInput = document.createElement('input');
-      labelInput.type = 'text';
-      labelInput.className = 'price-label-input';
-      labelInput.placeholder = '品項名稱';
-      labelInput.maxLength = 8;
-      labelInput.value = label || '';
-
-      const priceInput = document.createElement('input');
-      priceInput.type = 'number';
-      priceInput.className = 'price-input';
-      priceInput.value = price || '0';
-      priceInput.min = '0';
-
-      const unitSpan = document.createElement('span');
-      unitSpan.className = 'price-unit';
-      unitSpan.textContent = '元/';
-
-      const unitInput = document.createElement('input');
-      unitInput.type = 'text';
-      unitInput.className = 'price-unit-input';
-      unitInput.placeholder = '單位';
-      unitInput.maxLength = 4;
-      unitInput.value = unit || '';
-
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'delete-row-btn';
-      deleteBtn.innerHTML = '✕';
-      deleteBtn.title = '刪除此品項';
-      deleteBtn.onclick = () => { row.remove(); saveToStorage(); };
-
-      row.appendChild(labelInput);
-      row.appendChild(priceInput);
-      row.appendChild(unitSpan);
-      row.appendChild(unitInput);
-      row.appendChild(deleteBtn);
-      return row;
-    }
-
-    function addPriceRow() {
-      const table = document.querySelector('.price-table');
-      const addBtn = table.querySelector('.add-row-btn');
-      const row = createPriceRow('', '0', '');
-      table.insertBefore(row, addBtn);
-      row.querySelector('.price-label-input').focus();
-    }
-
-    // ===== localStorage =====
-    const STORAGE_KEY = 'priceNotice_v1';
-
-    function saveToStorage() {
-      const data = {
-        title: document.querySelector('.card-title').innerHTML,
-        bodyTexts: Array.from(document.querySelectorAll('p.body-text')).map(el => el.innerHTML),
-        footerMessage: document.querySelector('p.footer-message').innerHTML,
-        companyInfo: document.querySelector('.company-info').innerHTML,
-        priceRows: Array.from(document.querySelectorAll('.price-row')).map(row => ({
-          label: row.querySelector('.price-label-input')?.value || '',
-          price: row.querySelector('.price-input')?.value || '0',
-          unit: row.querySelector('.price-unit-input')?.value || ''
-        })),
-        cardWidth: document.querySelector('.card').style.width || '480px'
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
-
-    function loadFromStorage() {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      try {
-        const data = JSON.parse(raw);
-        if (data.title) document.querySelector('.card-title').innerHTML = data.title;
-        if (data.bodyTexts) {
-          const els = document.querySelectorAll('p.body-text');
-          data.bodyTexts.forEach((html, i) => { if (els[i]) els[i].innerHTML = html; });
-        }
-        if (data.footerMessage) document.querySelector('p.footer-message').innerHTML = data.footerMessage;
-        if (data.companyInfo) document.querySelector('.company-info').innerHTML = data.companyInfo;
-        if (data.priceRows) {
-          const table = document.querySelector('.price-table');
-          const addBtn = table.querySelector('.add-row-btn');
-          table.querySelectorAll('.price-row').forEach(r => r.remove());
-          data.priceRows.forEach(rd => {
-            table.insertBefore(createPriceRow(rd.label, rd.price, rd.unit), addBtn);
-          });
-        }
-        if (data.cardWidth) {
-          const w = parseInt(data.cardWidth);
-          document.querySelector('.card').style.width = w + 'px';
-          document.getElementById('widthSlider').value = w;
-          document.getElementById('widthValue').textContent = w;
-        }
-      } catch(e) { console.warn('載入快取失敗', e); }
-    }
-
-    // 品項輸入即時儲存
-    document.querySelector('.price-table').addEventListener('input', saveToStorage);
-
-    // 頁面寬度調整
-    const widthSlider = document.getElementById('widthSlider');
-    const widthValueEl = document.getElementById('widthValue');
-    const card = document.querySelector('.card');
-
-    widthSlider.addEventListener('input', function() {
-      card.style.width = this.value + 'px';
-      widthValueEl.textContent = this.value;
-      saveToStorage();
-    });
-
-    // 頁面載入時還原快取
-    window.addEventListener('load', loadFromStorage);
-
-    document.addEventListener('click', function(e) {
-      if (!activeSection) return;
-      if (activeSection.contains(e.target)) return;
-      if (document.getElementById('highlightToolbar').contains(e.target)) return;
-      if (e.target.id === 'editModeBtn') return;
-      doneEditing();
-    });
-  </script>
+<script src="js/app.js"></script>
 </body>
 </html>
