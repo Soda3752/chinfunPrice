@@ -1057,6 +1057,13 @@ body {
     border-bottom: 1px solid var(--border);
     text-align: left;
     letter-spacing: .03em;
+    white-space: nowrap;
+}
+
+.card-table th:not(:first-child),
+.card-table td:not(:first-child) {
+    width: 1px;
+    white-space: nowrap;
 }
 
 .card-table thead th.right {
@@ -1166,6 +1173,7 @@ body {
         display: none !important;
     }
 
+    /* 預設：列印通知頁 */
     #viewer-page {
         display: none !important;
     }
@@ -1189,5 +1197,85 @@ body {
     .add-row-btn,
     .delete-row-btn {
         display: none !important;
+    }
+
+    /* ===== 客戶總覽列印模式（body.print-viewer） ===== */
+    body.print-viewer #notice-page {
+        display: none !important;
+    }
+
+    body.print-viewer #viewer-page {
+        display: block !important;
+        background: #fff !important;
+        color: #000 !important;
+        min-height: unset !important;
+    }
+
+    body.print-viewer .viewer-header {
+        background: #fff !important;
+        color: #000 !important;
+        box-shadow: none !important;
+        position: static !important;
+        border-bottom: 2px solid #2d5a3d;
+        padding: 12px 24px 10px;
+    }
+
+    body.print-viewer .viewer-header-title {
+        color: #000 !important;
+        font-size: 15px;
+    }
+
+    body.print-viewer .viewer-header-sub {
+        color: #555 !important;
+        opacity: 1 !important;
+    }
+
+    body.print-viewer .viewer-header-right,
+    body.print-viewer .route-tabs,
+    body.print-viewer .toolbar,
+    body.print-viewer .status-bar {
+        display: none !important;
+    }
+
+    body.print-viewer #cards-section {
+        padding: 16px;
+    }
+
+    body.print-viewer .cards-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+
+    body.print-viewer .customer-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+        border-radius: 6px !important;
+    }
+
+    body.print-viewer .card-table tbody tr:hover td {
+        background: transparent !important;
+    }
+
+    body.print-viewer .new-price-input {
+        border: none !important;
+        background: transparent !important;
+        width: auto !important;
+        padding: 0 !important;
+        text-align: right;
+    }
+
+    body.print-viewer .new-price-input::placeholder {
+        color: #bbb !important;
+    }
+
+    body.print-viewer .new-price-input.has-value {
+        color: #c05a10 !important;
+        font-weight: 500 !important;
+    }
+
+    body.print-viewer .arrow-icon {
+        color: #999 !important;
     }
 }

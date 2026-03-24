@@ -954,138 +954,29 @@ function captureRouteScreenshot() {
     });
 }
 
-async function exportRoutePDF() {
+function exportRoutePDF() {
     var btn = document.getElementById('pdf-btn');
     var prevSearch = document.getElementById('search').value;
 
-    // 暫時清除搜尋、顯示全部卡片
+    // 顯示全部卡片
     document.getElementById('search').value = '';
     renderCards();
 
     btn.disabled = true;
-    btn.textContent = '處理中…';
+    btn.textContent = '列印中…';
+    document.body.classList.add('print-viewer');
 
-    var grid = document.getElementById('cards-grid');
-
-    // 將 input 換成外觀一致的 span，避免截圖破版
-    var replaced = [];
-    grid.querySelectorAll('.new-price-input').forEach(function (input) {
-        var hasVal = input.classList.contains('has-value');
-        var span = document.createElement('span');
-        span.className = 'new-price-input' + (hasVal ? ' has-value' : '');
-        span.style.display = 'inline-block';
-        span.style.lineHeight = '1.6';
-        span.textContent = hasVal ? input.value : '新單價';
-        if (!hasVal) span.style.color = '#a09d96';
-        input.parentNode.replaceChild(span, input);
-        replaced.push({span: span, input: input});
-    });
-
-    function restore() {
-        replaced.forEach(function (r) {
-            r.span.parentNode.replaceChild(r.input, r.span);
-        });
+    function afterPrint() {
+        document.body.classList.remove('print-viewer');
         document.getElementById('search').value = prevSearch;
         renderCards();
         btn.disabled = false;
         btn.textContent = '📄 PDF';
+        window.removeEventListener('afterprint', afterPrint);
     }
 
-    try {
-        // A4 尺寸（96 dpi）
-        var A4_W = 794;
-        var A4_H = 1123;
-        var margin = 24;
-        var contentH = A4_H - margin * 2;
-
-        // 建立量測用隱藏容器（全部卡片一起放入，量測位置）
-        var measure = document.createElement('div');
-        measure.style.cssText = 'position:fixed;left:-9999px;top:0;width:' + A4_W + 'px;padding:' + margin + 'px;background:#f5f0e8;box-sizing:border-box;';
-        var measureGrid = document.createElement('div');
-        measureGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;';
-
-        var originalCards = Array.from(grid.querySelectorAll('.customer-card'));
-        originalCards.forEach(function (c) {
-            measureGrid.appendChild(c.cloneNode(true));
-        });
-        measure.appendChild(measureGrid);
-        document.body.appendChild(measure);
-
-        // 等待 layout 完成
-        await new Promise(function (resolve) {
-            setTimeout(resolve, 150);
-        });
-
-        // 測量每張卡片相對於量測容器頂端的位置
-        var measureRect = measure.getBoundingClientRect();
-        var clonedCards = Array.from(measureGrid.querySelectorAll('.customer-card'));
-        var positions = clonedCards.map(function (c) {
-            var r = c.getBoundingClientRect();
-            return {top: r.top - measureRect.top, bottom: r.bottom - measureRect.top};
-        });
-
-        document.body.removeChild(measure);
-
-        // 依 A4 內容高度分組（不切割單一卡片）
-        var pages = [];
-        var curPage = [];
-        var pageStartY = 0;
-        for (var i = 0; i < positions.length; i++) {
-            var pos = positions[i];
-            if (curPage.length === 0) {
-                pageStartY = pos.top;
-                curPage.push(i);
-            } else if (pos.bottom - pageStartY <= contentH) {
-                curPage.push(i);
-            } else {
-                pages.push(curPage);
-                curPage = [i];
-                pageStartY = pos.top;
-            }
-        }
-        if (curPage.length > 0) pages.push(curPage);
-
-        // 建立 PDF
-        var pdf = new window.jspdf.jsPDF({orientation: 'portrait', unit: 'mm', format: 'a4'});
-
-        for (var pi = 0; pi < pages.length; pi++) {
-            var pageDiv = document.createElement('div');
-            pageDiv.style.cssText = 'position:fixed;left:-9999px;top:0;width:' + A4_W + 'px;height:' + A4_H + 'px;padding:' + margin + 'px;background:#f5f0e8;box-sizing:border-box;overflow:hidden;';
-            var pageGrid = document.createElement('div');
-            pageGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;';
-
-            pages[pi].forEach(function (idx) {
-                pageGrid.appendChild(originalCards[idx].cloneNode(true));
-            });
-            pageDiv.appendChild(pageGrid);
-            document.body.appendChild(pageDiv);
-
-            var canvas = await html2canvas(pageDiv, {
-                backgroundColor: '#f5f0e8',
-                scale: 2,
-                useCORS: true,
-                width: A4_W,
-                height: A4_H,
-                scrollX: 0,
-                scrollY: -window.scrollY
-            });
-
-            document.body.removeChild(pageDiv);
-
-            if (pi > 0) pdf.addPage();
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
-        }
-
-        var today = new Date();
-        var ds = today.getFullYear()
-            + String(today.getMonth() + 1).padStart(2, '0')
-            + String(today.getDate()).padStart(2, '0');
-        pdf.save(currentRoute + '_客戶單價_' + ds + '.pdf');
-        restore();
-    } catch (e) {
-        console.error('PDF 匯出失敗', e);
-        restore();
-    }
+    window.addEventListener('afterprint', afterPrint);
+    window.print();
 }
 
 document.getElementById('file-input').addEventListener('change', function (e) {
